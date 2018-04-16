@@ -1,0 +1,28 @@
+version: '2'
+services:
+
+  app:
+    build: .
+    image: stijink/monolog-ui
+    working_dir: /var/www
+    ports:
+      - "${APP_PORT}:8080"
+    command: yarn run dev
+    volumes:
+      - ./app:/var/www
+    environment:
+      - API_PORT
+
+  api:
+    build: .
+    image: stijink/monolog-ui
+    working_dir: /var/www
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    command: nodemon
+    volumes:
+      - ./api:/var/www
+      - ${LOGFILE_DIR}:/logfiles
+    environment:
+      - API_PORT
+      - LOGFILE_DIR

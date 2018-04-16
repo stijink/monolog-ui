@@ -1,0 +1,450 @@
+<template>
+  <v-app v-infinite-scroll="requestMessages" infinite-scroll-disabled="isScrollingEnabled" infinite-scroll-distance="10">
+
+  <!-- Toolbar when no meta informations exists -->
+  <v-toolbar dark dense fixed class="mb-1 blue darken-3" v-if="! hasMeta">
+      <v-toolbar-title class="subheading pl-4">
+        Analyzing your log files ...
+      </v-toolbar-title>
+    </v-toolbar>
+
+  <!-- Toolbar when meta informations exists -->
+  <v-toolbar dark dense fixed class="mb-1 blue darken-3" v-if="hasMeta">
+      <v-toolbar-title>
+        <v-menu offset-y full-width>
+          <v-btn flat slot="activator">
+            {{ meta.logfile_name }} ({{ meta.logfile_size }} MB | {{ meta.total }} messages | {{ formatDays(meta.days) }})
+            <v-icon class="ml-1">keyboard_arrow_down</v-icon>
+          </v-btn>
+          <v-list>
+
+          <v-list-tile v-for="file in logfiles.files" :key="file.name" @click="changeFile(file.name)">
+            <v-list-tile-title>{{ logfiles.path }}/{{ file.name }} ({{ file.size }} MB)</v-list-tile-title>
+          </v-list-tile>
+
+        </v-list>
+      </v-menu>
+      </v-toolbar-title>
+
+      <v-text-field flat solo-inverted prepend-icon="search" label="Search in messages ..." v-model="filter.searchterm" @input="updateSearchterm"></v-text-field>
+
+      <v-toolbar-items>
+
+        <!-- Channels -->
+        <v-menu offset-y full-width :close-on-content-click="false">
+          <v-btn flat slot="activator">
+            Channels ({{ filter.channels.length }}/{{ meta.channels.length }})
+            <v-icon class="ml-1">keyboard_arrow_down</v-icon>
+          </v-btn>
+          <v-list>
+          <v-list-tile v-for="channel in meta.channels" :key="channel">
+            <v-list-tile-action>
+              <v-checkbox v-model="filter.channels" :value="channel" @change="reloadMessages"></v-checkbox>
+            </v-list-tile-action>
+            <v-list-tile-title>{{ channel }}</v-list-tile-title>
+          </v-list-tile>
+
+          <v-divider></v-divider>
+
+          <v-list-tile class="mt-1">
+              <!-- Select all channels -->
+              <v-btn
+                v-if="filter.channels.length < meta.channels.length"
+                @click="selectAllChannels"
+                block
+                small
+                color="blue-grey lighten-4">
+                  Select all
+              </v-btn>
+
+            <!-- Unselect all channels -->
+              <v-btn
+                v-if="filter.channels.length === meta.channels.length"
+                @click="unselectAllChannels"
+                block
+                small
+                color="blue-grey lighten-4">
+                  Unselect all
+              </v-btn>
+
+          </v-list-tile>
+
+        </v-list>
+      </v-menu>
+
+      <!-- Loglevels -->
+      <v-menu offset-y full-width :close-on-content-click="false">
+        <v-btn flat slot="activator">
+          Log Levels ({{ filter.levels.length }}/{{ meta.levels.length }})
+          <v-icon class="ml-1">keyboard_arrow_down</v-icon>
+        </v-btn>
+        <v-list>
+        <v-list-tile v-for="loglevel in meta.levels" :key="loglevel">
+          <v-list-tile-action>
+            <v-checkbox v-model="filter.levels" :value="loglevel" @change="reloadMessages"></v-checkbox>
+          </v-list-tile-action>
+          <v-list-tile-title>{{ loglevel }}</v-list-tile-title>
+        </v-list-tile>
+
+        <v-divider></v-divider>
+
+          <v-list-tile class="mt-1">
+              <!-- Select all loglevels -->
+              <v-btn
+                v-if="filter.levels.length < meta.levels.length"
+                @click="selectAllLoglevels"
+                block
+                small
+                color="blue-grey lighten-4">
+                  Select all
+              </v-btn>
+
+            <!-- Unselect all loglevels -->
+              <v-btn
+                v-if="filter.levels.length === meta.levels.length"
+                @click="unselectAllLoglevels"
+                block
+                small
+                color="blue-grey lighten-4">
+                  Unselect all
+              </v-btn>
+
+          </v-list-tile>
+
+      </v-list>
+    </v-menu>
+
+      <!-- Settings -->
+      <v-menu offset-y full-width :close-on-content-click="false">
+        <v-btn flat slot="activator">
+          <v-icon class="ml-1">menu</v-icon>
+        </v-btn>
+        <v-list>
+        <v-list-tile>
+          <v-list-tile-action>
+            <v-btn flat @click="resetFilter()"><v-icon class="mr-2">cancel</v-icon>Reset Filter</v-btn>
+          </v-list-tile-action>
+        </v-list-tile>
+      </v-list>
+    </v-menu>
+
+      </v-toolbar-items>
+    </v-toolbar>
+
+    <v-container v-if="isLoading === true" fluid fill-height>
+      <v-layout flex align-center justify-center>
+        <v-flex xs4 class="text-xs-center">
+          <v-progress-circular indeterminate color="grey" :width="3"></v-progress-circular>
+          <p class="headline mb-5 mt-4 grey--text darken-3">
+            Loading log messages
+          </p>
+        </v-flex>
+      </v-layout>
+    </v-container>
+
+    <v-container fluid fill-height class="mt-5" v-if="hasMessages">
+      <v-layout row>
+        <v-flex xs12>
+          <table class="messages">
+            <tr v-for="(message, index) in messages" v-bind:key="index" class="pa-3" :class="messageColor(message)" :data-message-idx="index">
+              <td class="pa-2 message--level">{{ message.level }}</td>
+              <td class="pa-2 message--channel">{{ message.channel }}</td>
+              <td class="pa-2 text-xs-center message--date">{{ message.date }}</td>
+              <td class="pa-2 message--text">{{ message.text }}</td>
+            </tr>
+          </table>
+        </v-flex>
+      </v-layout>
+    </v-container>
+
+    <v-container v-if="isLogfileEmpty" fluid fill-height>
+      <v-layout flex align-center justify-center>
+        <v-flex xs4 class="text-xs-center">
+          <p class="headline mb-5 mt-4 grey--text darken-3">
+            The log seems to be empty!
+          </p>
+        </v-flex>
+      </v-layout>
+    </v-container>
+
+    <v-container v-if="isFilterTooRestrictive" fluid fill-height>
+      <v-layout flex align-center justify-center>
+        <v-flex xs4 class="text-xs-center">
+          <p class="headline mb-5 mt-4 grey--text darken-3">
+            Your selected filter is too restrict to show any log messages
+          </p>
+        </v-flex>
+      </v-layout>
+    </v-container>
+
+    <v-container v-if="filesLoaded && ! hasFiles" fluid fill-height>
+      <v-layout flex align-center justify-center>
+        <v-flex xs4 class="text-xs-center">
+          <p class="headline mb-5 mt-4 grey--text darken-3">
+            Could not find any logfiles in {{ files.path }}
+          </p>
+        </v-flex>
+      </v-layout>
+    </v-container>
+
+  </v-app>
+</template>
+
+<script>
+
+import _debounce from 'lodash.debounce'
+
+export default {
+  data () {
+    return {
+      filter: {
+        file: '',
+        start: 0,
+        limit: 100,
+        searchterm: '',
+        channels: [],
+        levels: []
+      },
+
+      isLoading: true,
+
+      // Holds a list of aviable logfiles
+      logfiles: [],
+
+      // Holds meta informations about the current logfile
+      meta: [],
+
+      // Holds the messages retrieved form the api
+      messages: []
+    }
+  },
+
+  sockets: {
+    connect: function () {
+      this.requestLogfiles()
+    },
+    logfiles: function (logfiles) {
+      this.logfiles = logfiles
+      this.filter.file = this.logfiles.files[0].name
+      this.restoreFilter()
+      this.requestMeta()
+    },
+    meta: function (meta) {
+      this.meta = meta
+      this.ensureDefaultFilter()
+      this.reloadMessages()
+    },
+    reloadedMessages: function (messages) {
+      console.log('reloadedMessages')
+      this.messages = messages
+      this.isLoading = false
+    },
+    requestedMessages: function (messages) {
+      console.log('requestedMessages')
+      this.messages = this.messages.concat(messages)
+      this.isLoading = false
+    }
+  },
+
+  watch: {
+    filter: {
+      deep: true,
+      handler: function () { this.rememberFilter() }
+    }
+  },
+
+  computed: {
+    hasMeta () {
+      return Object.keys(this.meta).length > 0
+    },
+
+    filesLoaded () {
+      return this.logfiles.length > 0
+    },
+
+    hasFiles () {
+      return this.filesLoaded && this.logfiles.files.length > 0
+    },
+
+    hasMessages () {
+      return this.isLoading === false && this.messages.length > 0
+    },
+
+    isLogfileEmpty () {
+      return this.isLoading === false && this.meta.total === 0
+    },
+
+    isFilterTooRestrictive () {
+      return this.isLoading === false && this.meta.total > 0 && this.messages.length === 0
+    },
+
+    isScrollingEnabled () {
+      if (this.messages.length === 0) {
+        return false
+      }
+
+      return this.isLoading
+    }
+  },
+
+  methods: {
+    requestLogfiles () {
+      console.log('requestLogfiles')
+      this.isLoading = true
+      this.$socket.emit('request-logfiles')
+    },
+
+    requestMeta () {
+      console.log('requestMeta')
+      this.isLoading = true
+      this.$socket.emit('request-meta', this.filter)
+    },
+
+    reloadMessages () {
+      console.log('reloadMessages')
+      this.isLoading = true
+      this.$socket.emit('reload-messages', this.filter)
+    },
+
+    requestMessages () {
+      console.log('requestMessages')
+      this.isLoading = true
+      this.$socket.emit('request-messages', this.filter)
+    },
+
+    ensureDefaultFilter () {
+      if (this.filter.file.length === 0) {
+        this.filter.file = this.logfiles.files[0].name
+      }
+
+      if (this.filter.channels.length === 0) {
+        this.filter.channels = this.meta.channels
+      }
+
+      if (this.filter.levels.length === 0) {
+        this.filter.levels = this.meta.levels
+      }
+    },
+
+    changeFile (filename) {
+      this.filter.file = filename
+      this.requestMeta()
+    },
+
+    rememberFilter () {
+      console.log('rememberFilter')
+      localStorage.setItem('filter', JSON.stringify(this.filter))
+    },
+
+    restoreFilter () {
+      if (localStorage.getItem('filter')) {
+        this.filter = JSON.parse(localStorage.getItem('filter'))
+      }
+    },
+
+    resetFilter () {
+      this.filter.searchterm = ''
+      this.filter.channels = this.meta.channels
+      this.filter.levels = this.meta.levels
+      this.reloadMessages()
+    },
+
+    formatDays (days) {
+      if (days > 1) {
+        return days + ' days'
+      }
+
+      return days + ' day'
+    },
+
+    selectAllChannels () {
+      this.filter.channels = this.meta.channels
+      this.reloadMessages()
+    },
+
+    unselectAllChannels () {
+      this.filter.channels = []
+      this.messages = []
+    },
+
+    selectAllLoglevels () {
+      this.filter.levels = this.meta.levels
+      this.reloadMessages()
+    },
+
+    unselectAllLoglevels () {
+      this.filter.levels = []
+      this.messages = []
+    },
+
+    updateSearchterm: _debounce(function () {
+      console.log('updateSearchterm')
+      this.reloadMessages()
+    }, 500),
+
+    messageColor (message) {
+      if (message.level === 'DEBUG') {
+        return 'blue-grey lighten-5'
+      }
+
+      if (message.level === 'INFO') {
+        return 'grey lighten-1'
+      }
+
+      if (message.level === 'NOTICE') {
+        return 'amber lighten-4'
+      }
+
+      if (message.level === 'WARNING') {
+        return 'amber lighten-3'
+      }
+
+      if (message.level === 'ERROR') {
+        return 'amber lighten-1'
+      }
+
+      if (message.level === 'CRITICAL') {
+        return 'orange'
+      }
+
+      if (message.level === 'ALERT') {
+        return 'orange darken-4'
+      }
+
+      if (message.level === 'EMERGENCY') {
+        return 'red darken-4 white--text'
+      }
+
+      return 'blue-grey lighten-5'
+    }
+  }
+}
+</script>
+
+<style scoped>
+  .messages {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .message--level {
+    width: 100px;
+  }
+
+  .message--channel {
+    width: 120px;
+  }
+
+  .message--date {
+    width: 200px;
+  }
+
+  .message--text {
+    word-wrap:break-word;
+  }
+
+  .list__tile__action {
+    min-width: 30px;
+  }
+</style>
