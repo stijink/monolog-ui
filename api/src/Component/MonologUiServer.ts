@@ -129,7 +129,7 @@ export class MonologUiServer
         // Filter for searchterm
         if (filter.searchterm.length > 0) {
             messages = messages.filter(
-                message => message.text.indexOf(filter.searchterm.toLowerCase()) !== -1
+                message => message.text.toLowerCase().indexOf(filter.searchterm.toLowerCase()) !== -1
             )
         }
 
