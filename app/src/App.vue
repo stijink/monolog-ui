@@ -6,6 +6,28 @@
       <v-toolbar-title class="subheading pl-4">
         Analyzing your log files ...
       </v-toolbar-title>
+
+      <v-spacer></v-spacer>
+
+      <v-toobar-items>
+
+      <!-- Settings -->
+      <v-menu offset-y full-width :close-on-content-click="false">
+
+        <v-btn flat slot="activator">
+          <v-icon class="ml-1">menu</v-icon>
+        </v-btn>
+
+        <v-list>
+          <v-list-tile>
+            <v-list-tile-action>
+              <v-btn flat @click="resetFilter()"><v-icon class="mr-2">cancel</v-icon>Reset Filter</v-btn>
+            </v-list-tile-action>
+          </v-list-tile>
+      </v-list>
+    </v-menu>
+
+      </v-toobar-items>
     </v-toolbar>
 
   <!-- Toolbar when meta informations exists -->
