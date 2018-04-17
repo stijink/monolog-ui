@@ -181,7 +181,22 @@
       </v-toolbar-items>
     </v-toolbar>
 
-    <v-container v-if="! hasMessages && isLoading === true" fluid fill-height>
+    <v-container v-if="backendError === true" fluid fill-height>
+      <v-layout flex align-center justify-center>
+        <v-flex xs4 class="text-xs-center">
+          <p class="headline mb-5 mt-4">
+            Uuups. Could not talk to the API.
+          </p>
+
+          <v-btn @click="requestLogfiles()">
+            <v-icon small class="mr-2">sync</v-icon>
+            Try again
+          </v-btn>
+        </v-flex>
+      </v-layout>
+    </v-container>
+
+    <v-container v-if="showLoadingMessage" fluid fill-height>
       <v-layout flex align-center justify-center>
         <v-flex xs4 class="text-xs-center">
           <v-progress-circular indeterminate color="grey" :width="3"></v-progress-circular>
@@ -258,6 +273,7 @@ export default {
 
       // Variables for local use
       isLoading: true,
+      backendError: false,
       pauseLoadingNewMessages: false,
       showCharts: true,
 
@@ -285,12 +301,19 @@ export default {
 
   sockets: {
     connect: function () {
+      this.restoreFilter()
       this.requestLogfiles()
     },
+    error: function () {
+      this.backendError = true
+    },
+    connect_error: function () {
+      this.backendError = true
+    },
     logfiles: function (logfiles) {
+      this.backendError = false
       this.logfiles = logfiles
       this.filter.file = this.logfiles.files[0].name
-      this.restoreFilter()
       this.requestMetaAndResetFilter()
     },
     metaResetFilter: function (meta) {
@@ -353,6 +376,10 @@ export default {
 
     isScrollingDisabled () {
       return this.messages.length === 0
+    },
+
+    showLoadingMessage () {
+      return this.hasMessages && this.isLoading === true && this.backendError === false
     }
   },
 

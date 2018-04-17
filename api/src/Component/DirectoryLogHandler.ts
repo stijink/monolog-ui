@@ -126,10 +126,6 @@ export class DirectoryLogHandler implements LogHandler
      */
     private readLogfile (filename: string): string
     {
-        if (! Filesystem.existsSync(filename)) {
-            return ''
-        }
-
         return Filesystem.readFileSync(filename, 'utf8').toString().trim()
     }
 
