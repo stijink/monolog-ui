@@ -38,7 +38,7 @@ export class DirectoryLogHandler implements LogHandler
 
             logfiles.files.push({
                 name: filename,
-                size: (fileStats.size / 1000000.0).toFixed(2),
+                size: fileStats.size,
                 changed: fileStats.mtime
             });
         });
@@ -73,7 +73,7 @@ export class DirectoryLogHandler implements LogHandler
 
         // Determine the size of the log file
         const fileStats = Filesystem.statSync(this.logfilePathLocal + filter.file);
-        const filesize_in_mb = fileStats.size / 1000000.0;
+        const filesize_in_mb = fileStats.size;
 
         return {
             logfile_name: filter.file,
@@ -126,6 +126,10 @@ export class DirectoryLogHandler implements LogHandler
      */
     private readLogfile (filename: string): string
     {
+        if (! Filesystem.existsSync(filename)) {
+            return ''
+        }
+
         return Filesystem.readFileSync(filename, 'utf8').toString().trim()
     }
 

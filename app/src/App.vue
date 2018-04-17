@@ -13,13 +13,13 @@
       <v-toolbar-title>
         <v-menu offset-y full-width>
           <v-btn flat slot="activator">
-            {{ meta.logfile_name }} ({{ meta.logfile_size }} MB | {{ meta.total }} messages | {{ formatDays(meta.days) }})
+            {{ meta.logfile_name }} ({{ formatFilesize(meta.logfile_size) }} | {{ meta.total }} messages | {{ formatDays(meta.days) }})
             <v-icon class="ml-1">keyboard_arrow_down</v-icon>
           </v-btn>
           <v-list>
 
           <v-list-tile v-for="file in logfiles.files" :key="file.name" @click="changeFile(file.name)">
-            <v-list-tile-title>{{ logfiles.path }}/{{ file.name }} ({{ file.size }} MB)</v-list-tile-title>
+            <v-list-tile-title>{{ logfiles.path }}/{{ file.name }} ({{ formatFilesize(file.size) }})</v-list-tile-title>
           </v-list-tile>
 
         </v-list>
@@ -400,7 +400,19 @@ export default {
         return days + ' days'
       }
 
-      return days + ' day'
+      return '1 day'
+    },
+
+    formatFilesize (filesize) {
+      if (filesize < 1000) {
+        return filesize.toFixed(2) + ' Bytes'
+      }
+
+      if (filesize < (1000 * 1000)) {
+        return (filesize / 1000).toFixed(2) + ' KB'
+      }
+
+      return (filesize / 1000000).toFixed(2) + ' MB'
     },
 
     selectAllChannels () {
