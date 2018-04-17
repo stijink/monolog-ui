@@ -11,14 +11,9 @@ import { Message } from '../Interface/message.Interface'
 
 export class DirectoryLogHandler implements LogHandler
 {
-    private LogfilePathOnHost: string
-    private LogfilePathLocal: string
+    private watcher = null
 
-    constructor()
-    {
-        this.LogfilePathLocal = '/logfiles/'
-        this.LogfilePathOnHost = process.env.LOGFILE_DIR
-    }
+    constructor(private logfilePathLocal: string, private logfilePathOnHost: string) {}
 
     /**
      * Get a list of logfiles within a configured path
@@ -28,18 +23,18 @@ export class DirectoryLogHandler implements LogHandler
     public getLogfiles (): Files
     {
         const logfiles = {
-            path: this.LogfilePathOnHost,
+            path: this.logfilePathOnHost,
             files: []
         }
 
-        const files = Filesystem.readdirSync(this.LogfilePathLocal);
+        const files = Filesystem.readdirSync(this.logfilePathLocal);
 
         files.forEach(filename => {
             if (! filename.includes('.log')) {
                 return
             }
 
-            const fileStats = Filesystem.statSync(this.LogfilePathLocal + filename);
+            const fileStats = Filesystem.statSync(this.logfilePathLocal + filename);
 
             logfiles.files.push({
                 name: filename,
@@ -77,7 +72,7 @@ export class DirectoryLogHandler implements LogHandler
         channels = Array.from(new Set(channels));
 
         // Determine the size of the log file
-        const fileStats = Filesystem.statSync(this.LogfilePathLocal + filter.file);
+        const fileStats = Filesystem.statSync(this.logfilePathLocal + filter.file);
         const filesize_in_mb = fileStats.size / 1000000.0;
 
         return {
@@ -100,7 +95,7 @@ export class DirectoryLogHandler implements LogHandler
      */
     public getMessages (filename: string): Message[]
     {
-        const fullFilename = this.LogfilePathLocal + filename
+        const fullFilename = this.logfilePathLocal + filename
         const logfile  = this.readLogfile(fullFilename)
 
         return this.parseMessages(logfile)
@@ -114,8 +109,13 @@ export class DirectoryLogHandler implements LogHandler
      */
     public watchForNewMessages (filename: string, callback)
     {
-        const fullFilename = this.LogfilePathLocal + filename
-        FileWatcher.watch(fullFilename).on('change', callback)
+        const fullFilename = this.logfilePathLocal + filename
+
+        if (this.watcher !== null) {
+            this.watcher.close()
+        }
+
+        this.watcher = FileWatcher.watch(fullFilename).on('change', callback)
     }
 
     /**
@@ -126,7 +126,6 @@ export class DirectoryLogHandler implements LogHandler
      */
     private readLogfile (filename: string): string
     {
-        console.log('reading logfile: ' + filename)
         return Filesystem.readFileSync(filename, 'utf8').toString().trim()
     }
 

@@ -13,9 +13,9 @@ export class MonologUiServer
     private socketIo: any
     private LogHandler: LogHandler
 
-    constructor (logHandler: LogHandler)
+    constructor (logHandler: LogHandler, port: number)
     {
-        this.port = parseInt(process.env.API_PORT)
+        this.port = port
         this.httpServer = new Http.Server()
         this.socketIo = socketIo(this.httpServer)
         this.LogHandler = logHandler
@@ -31,7 +31,8 @@ export class MonologUiServer
             console.log('New socket connection: #' + socket.id)
 
             this.listenForFilesRequest(socket)
-            this.listenForMetaRequest(socket)
+            this.listenForMetaAndResetFilter(socket)
+            this.listenForMetaAndPreserveFilter(socket)
             this.listenForMessagesReload(socket)
             this.listenForMessagesRequest(socket)
             this.listenForDisconnect(socket)
@@ -41,23 +42,27 @@ export class MonologUiServer
     private listenForFilesRequest (socket: any)
     {
         socket.on('request-logfiles', () => {
-            console.log('files requested')
             this.socketIo.emit('logfiles', this.LogHandler.getLogfiles())
         })
     }
 
-    private listenForMetaRequest (socket: any)
+    private listenForMetaAndResetFilter (socket: any)
     {
-        socket.on('request-meta', (filter: Filter) => {
-            console.log('meta requested')
-            this.socketIo.emit('meta', this.LogHandler.getLogfileMeta(filter))
+        socket.on('request-meta-reset-filter', (filter: Filter) => {
+            this.socketIo.emit('metaResetFilter', this.LogHandler.getLogfileMeta(filter))
+        })
+    }
+
+    private listenForMetaAndPreserveFilter (socket: any)
+    {
+        socket.on('request-meta-preserve-filter', (filter: Filter) => {
+            this.socketIo.emit('metaPreserveFilter', this.LogHandler.getLogfileMeta(filter))
         })
     }
 
     private listenForMessagesRequest (socket: any)
     {
         socket.on('request-messages', (filter: Filter) => {
-            console.log('messages requested')
             this.socketIo.emit('requestedMessages', this.getFilteredMessages(filter));
         })
     }
@@ -65,7 +70,6 @@ export class MonologUiServer
     private listenForMessagesReload (socket: any)
     {
         socket.on('reload-messages', (filter: Filter) => {
-            console.log('messages reload')
             filter.start = 0 // Make sure to start with the latest messages
             this.socketIo.emit('reloadedMessages', this.getFilteredMessages(filter));
 
@@ -84,7 +88,6 @@ export class MonologUiServer
     private watchForNewMessages (filter: Filter)
     {
         this.LogHandler.watchForNewMessages(filter.file, () => {
-            console.log('file has changed')
             this.socketIo.emit('fileChanged')
         })
     }
@@ -114,10 +117,14 @@ export class MonologUiServer
     private applyFilters(messages: Message[], filter: Filter): Message[]
     {
         // Filter for loglevel
-        messages = messages.filter(message => filter.levels.includes(message.level));
+        if (filter.levels) {
+            messages = messages.filter(message => filter.levels.includes(message.level))
+        }
 
         // Filter for channel
-        messages = messages.filter(message => filter.channels.includes(message.channel));
+        if (filter.channels) {
+            messages = messages.filter(message => filter.channels.includes(message.channel))
+        }
 
         // Filter for searchterm
         if (filter.searchterm.length > 0) {

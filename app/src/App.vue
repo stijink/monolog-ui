@@ -159,7 +159,7 @@
       </v-toolbar-items>
     </v-toolbar>
 
-    <v-container v-if="! hasMessages" fluid fill-height>
+    <v-container v-if="! hasMessages && isLoading === true" fluid fill-height>
       <v-layout flex align-center justify-center>
         <v-flex xs4 class="text-xs-center">
           <v-progress-circular indeterminate color="grey" :width="3"></v-progress-circular>
@@ -246,7 +246,18 @@ export default {
       meta: [],
 
       // Holds the messages retrieved form the api
-      messages: []
+      messages: [],
+
+      loglevelColors: {
+        DEBUG: 'blue-grey lighten-5',
+        INFO: 'grey lighten-1',
+        NOTICE: 'amber lighten-4',
+        WARNING: 'amber lighten-3',
+        ERROR: 'amber lighten-1',
+        ALERT: 'orange darken-4',
+        EMERGENCY: 'red darken-4 white--text',
+        UNKNOWN: 'blue-grey lighten-5'
+      }
     }
   },
 
@@ -258,11 +269,15 @@ export default {
       this.logfiles = logfiles
       this.filter.file = this.logfiles.files[0].name
       this.restoreFilter()
-      this.requestMeta()
+      this.requestMetaAndResetFilter()
     },
-    meta: function (meta) {
+    metaResetFilter: function (meta) {
       this.meta = meta
       this.ensureDefaultFilter()
+      this.reloadMessages()
+    },
+    metaPreserveFilter: function (meta) {
+      this.meta = meta
       this.reloadMessages()
     },
     reloadedMessages: function (messages) {
@@ -276,12 +291,13 @@ export default {
     fileChanged: _debounce(function () {
       if (this.pauseLoadingNewMessages === false) {
         console.log('reloading file changes')
-        this.requestMeta()
+        this.requestMetaAndPreserveFilter()
       }
-    }, 1000)
+    }, 300)
   },
 
   watch: {
+    // Watch for changes to the filter
     filter: {
       deep: true,
       handler: function () { this.rememberFilter() }
@@ -316,32 +332,31 @@ export default {
     isScrollingDisabled () {
       return this.messages.length === 0
     }
-
   },
 
   methods: {
     requestLogfiles () {
-      console.log('requestLogfiles')
       this.isLoading = true
       this.$socket.emit('request-logfiles')
     },
 
-    requestMeta () {
-      console.log('requestMeta')
+    requestMetaAndResetFilter () {
       this.isLoading = true
-      this.$socket.emit('request-meta', this.filter)
+      this.$socket.emit('request-meta-reset-filter', this.filter)
+    },
+
+    requestMetaAndPreserveFilter () {
+      this.isLoading = true
+      this.$socket.emit('request-meta-preserve-filter', this.filter)
     },
 
     reloadMessages () {
-      console.log('reloadMessages')
       this.isLoading = true
       this.$socket.emit('reload-messages', this.filter)
     },
 
     requestMoreMessages () {
-      console.log('requestMoreMessages')
       this.filter.start += 100
-      console.log(this.filter.start)
       this.$socket.emit('request-messages', this.filter)
     },
 
@@ -356,7 +371,7 @@ export default {
 
     changeFile (filename) {
       this.filter.file = filename
-      this.requestMeta()
+      this.requestMetaAndResetFilter()
     },
 
     rememberFilter () {
@@ -366,10 +381,10 @@ export default {
     restoreFilter () {
       if (localStorage.getItem('filter')) {
         this.filter = JSON.parse(localStorage.getItem('filter'))
-      }
 
-      // We don't want to use the stored value for "start"
-      this.filter.start = 0
+        // We don't want to use the stored value for "start"
+        this.filter.start = 0
+      }
     },
 
     resetFilter () {
@@ -395,7 +410,7 @@ export default {
 
     unselectAllChannels () {
       this.filter.channels = []
-      this.messages = []
+      this.reloadMessages()
     },
 
     selectAllLoglevels () {
@@ -405,48 +420,21 @@ export default {
 
     unselectAllLoglevels () {
       this.filter.levels = []
-      this.messages = []
+      this.reloadMessages()
     },
 
     updateSearchterm: _debounce(function () {
-      console.log('updateSearchterm')
       this.reloadMessages()
     }, 500),
 
     messageColor (message) {
-      if (message.level === 'DEBUG') {
-        return 'blue-grey lighten-5'
+      let color = this.loglevelColors[message.level]
+
+      if (color.length === 0) {
+        color = this.loglevelColors['UNKNOWN']
       }
 
-      if (message.level === 'INFO') {
-        return 'grey lighten-1'
-      }
-
-      if (message.level === 'NOTICE') {
-        return 'amber lighten-4'
-      }
-
-      if (message.level === 'WARNING') {
-        return 'amber lighten-3'
-      }
-
-      if (message.level === 'ERROR') {
-        return 'amber lighten-1'
-      }
-
-      if (message.level === 'CRITICAL') {
-        return 'orange'
-      }
-
-      if (message.level === 'ALERT') {
-        return 'orange darken-4'
-      }
-
-      if (message.level === 'EMERGENCY') {
-        return 'red darken-4 white--text'
-      }
-
-      return 'blue-grey lighten-5'
+      return color
     }
   }
 }
