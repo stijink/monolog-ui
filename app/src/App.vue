@@ -1,5 +1,5 @@
 <template>
-  <v-app v-infinite-scroll="requestMessages" infinite-scroll-disabled="isScrollingEnabled" infinite-scroll-distance="10">
+  <v-app v-infinite-scroll="requestMoreMessages" infinite-scroll-disabled="isScrollingDisabled" infinite-scroll-distance="30" infinite-scroll-immediate-check="false">
 
   <!-- Toolbar when no meta informations exists -->
   <v-toolbar dark dense fixed class="mb-1 blue darken-3" v-if="! hasMeta">
@@ -116,22 +116,50 @@
 
       <!-- Settings -->
       <v-menu offset-y full-width :close-on-content-click="false">
+
         <v-btn flat slot="activator">
           <v-icon class="ml-1">menu</v-icon>
         </v-btn>
+
         <v-list>
-        <v-list-tile>
+
+          <v-list-tile>
+            <v-list-tile-action>
+              <v-btn flat @click="resetFilter()"><v-icon class="mr-2">cancel</v-icon>Reset Filter</v-btn>
+            </v-list-tile-action>
+          </v-list-tile>
+
+          <v-list-tile v-if="pauseLoadingNewMessages == false">
+            <v-list-tile-action>
+              <v-btn flat @click="pauseLoadingNewMessages = true"><v-icon class="mr-2">sync_disabled</v-icon>Pause loading new Messages</v-btn>
+            </v-list-tile-action>
+          </v-list-tile>
+
+        <v-list-tile v-if="pauseLoadingNewMessages == true">
           <v-list-tile-action>
-            <v-btn flat @click="resetFilter()"><v-icon class="mr-2">cancel</v-icon>Reset Filter</v-btn>
+            <v-btn flat @click="pauseLoadingNewMessages = false"><v-icon class="mr-2">sync</v-icon>Resume loading new Messages</v-btn>
           </v-list-tile-action>
         </v-list-tile>
+
+<!--           <v-list-tile v-if="showCharts == false">
+            <v-list-tile-action>
+              <v-btn flat @click="showCharts = true"><v-icon class="mr-2">timeline</v-icon>Show Charts</v-btn>
+            </v-list-tile-action>
+          </v-list-tile>
+
+        <v-list-tile v-if="showCharts == true">
+          <v-list-tile-action>
+            <v-btn flat @click="showCharts = false"><v-icon class="mr-2">timeline</v-icon>Hide Charts</v-btn>
+          </v-list-tile-action>
+        </v-list-tile> -->
+
       </v-list>
     </v-menu>
 
       </v-toolbar-items>
     </v-toolbar>
 
-    <v-container v-if="isLoading === true" fluid fill-height>
+    <v-container v-if="! hasMessages" fluid fill-height>
       <v-layout flex align-center justify-center>
         <v-flex xs4 class="text-xs-center">
           <v-progress-circular indeterminate color="grey" :width="3"></v-progress-circular>
@@ -181,7 +209,7 @@
       <v-layout flex align-center justify-center>
         <v-flex xs4 class="text-xs-center">
           <p class="headline mb-5 mt-4 grey--text darken-3">
-            Could not find any logfiles in {{ files.path }}
+            Could not find any logfiles in {{ logfiles.path }}
           </p>
         </v-flex>
       </v-layout>
@@ -206,7 +234,10 @@ export default {
         levels: []
       },
 
+      // Variables for local use
       isLoading: true,
+      pauseLoadingNewMessages: false,
+      showCharts: true,
 
       // Holds a list of aviable logfiles
       logfiles: [],
@@ -235,15 +266,19 @@ export default {
       this.reloadMessages()
     },
     reloadedMessages: function (messages) {
-      console.log('reloadedMessages')
       this.messages = messages
       this.isLoading = false
     },
     requestedMessages: function (messages) {
-      console.log('requestedMessages')
+      console.log(messages[0].date)
       this.messages = this.messages.concat(messages)
-      this.isLoading = false
-    }
+    },
+    fileChanged: _debounce(function () {
+      if (this.pauseLoadingNewMessages === false) {
+        console.log('reloading file changes')
+        this.requestMeta()
+      }
+    }, 1000)
   },
 
   watch: {
@@ -267,7 +302,7 @@ export default {
     },
 
     hasMessages () {
-      return this.isLoading === false && this.messages.length > 0
+      return this.messages.length > 0
     },
 
     isLogfileEmpty () {
@@ -278,13 +313,10 @@ export default {
       return this.isLoading === false && this.meta.total > 0 && this.messages.length === 0
     },
 
-    isScrollingEnabled () {
-      if (this.messages.length === 0) {
-        return false
-      }
-
-      return this.isLoading
+    isScrollingDisabled () {
+      return this.messages.length === 0
     }
+
   },
 
   methods: {
@@ -306,9 +338,10 @@ export default {
       this.$socket.emit('reload-messages', this.filter)
     },
 
-    requestMessages () {
-      console.log('requestMessages')
-      this.isLoading = true
+    requestMoreMessages () {
+      console.log('requestMoreMessages')
+      this.filter.start += 100
+      console.log(this.filter.start)
       this.$socket.emit('request-messages', this.filter)
     },
 
@@ -317,13 +350,8 @@ export default {
         this.filter.file = this.logfiles.files[0].name
       }
 
-      if (this.filter.channels.length === 0) {
-        this.filter.channels = this.meta.channels
-      }
-
-      if (this.filter.levels.length === 0) {
-        this.filter.levels = this.meta.levels
-      }
+      this.filter.channels = this.meta.channels
+      this.filter.levels = this.meta.levels
     },
 
     changeFile (filename) {
@@ -332,7 +360,6 @@ export default {
     },
 
     rememberFilter () {
-      console.log('rememberFilter')
       localStorage.setItem('filter', JSON.stringify(this.filter))
     },
 
@@ -340,9 +367,13 @@ export default {
       if (localStorage.getItem('filter')) {
         this.filter = JSON.parse(localStorage.getItem('filter'))
       }
+
+      // We don't want to use the stored value for "start"
+      this.filter.start = 0
     },
 
     resetFilter () {
+      this.filter.start = 0
       this.filter.searchterm = ''
       this.filter.channels = this.meta.channels
       this.filter.levels = this.meta.levels

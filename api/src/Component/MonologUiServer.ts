@@ -33,6 +33,7 @@ export class MonologUiServer
             this.listenForFilesRequest(socket)
             this.listenForMetaRequest(socket)
             this.listenForMessagesReload(socket)
+            this.listenForMessagesRequest(socket)
             this.listenForDisconnect(socket)
         })
     }
@@ -65,7 +66,11 @@ export class MonologUiServer
     {
         socket.on('reload-messages', (filter: Filter) => {
             console.log('messages reload')
+            filter.start = 0 // Make sure to start with the latest messages
             this.socketIo.emit('reloadedMessages', this.getFilteredMessages(filter));
+
+            // Start watching for new messages
+            this.watchForNewMessages(filter)
         })
     }
 
@@ -73,6 +78,14 @@ export class MonologUiServer
     {
         socket.on('disconnect', () => {
             console.log('client disconnected')
+        })
+    }
+
+    private watchForNewMessages (filter: Filter)
+    {
+        this.LogHandler.watchForNewMessages(filter.file, () => {
+            console.log('file has changed')
+            this.socketIo.emit('fileChanged')
         })
     }
 
@@ -125,6 +138,6 @@ export class MonologUiServer
      */
     private applyLimits(messages: Message[], filter: Filter): Message[]
     {
-        return messages.slice(filter.start, filter.limit);
+        return messages.slice(filter.start, (filter.start + filter.limit))
     }
 }

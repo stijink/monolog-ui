@@ -1,5 +1,6 @@
 import * as Filesystem from 'fs'
 import * as MomentJs from 'moment'
+import * as FileWatcher from 'chokidar'
 
 // Interfaces
 import { Files } from '../Interface/files.Interface'
@@ -102,6 +103,12 @@ export class DirectoryLogHandler
         const logfile  = this.readLogfile(fullFilename)
 
         return this.parseMessages(logfile)
+    }
+
+    public watchForNewMessages (filename: string, callback)
+    {
+        const fullFilename = this.LogfilePathLocal + filename
+        FileWatcher.watch(fullFilename).on('change', callback)
     }
 
     /**
