@@ -1,8 +1,8 @@
 import * as Http from 'http'
 import * as socketIo from 'socket.io'
-import { DirectoryLogHandler as LogHandler } from './DirectoryLogHandler'
 
 // Interfaces
+import { LogHandler } from '../Interface/loghandler.interface'
 import { Filter } from '../Interface/filter.Interface'
 import { Message } from '../Interface/message.Interface'
 
@@ -13,12 +13,12 @@ export class MonologUiServer
     private socketIo: any
     private LogHandler: LogHandler
 
-    constructor ()
+    constructor (logHandler: LogHandler)
     {
         this.port = parseInt(process.env.API_PORT)
         this.httpServer = new Http.Server()
         this.socketIo = socketIo(this.httpServer)
-        this.LogHandler = new LogHandler()
+        this.LogHandler = logHandler
     }
 
     public start ()

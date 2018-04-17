@@ -3,12 +3,13 @@ import * as MomentJs from 'moment'
 import * as FileWatcher from 'chokidar'
 
 // Interfaces
+import { LogHandler } from '../Interface/loghandler.interface'
 import { Files } from '../Interface/files.Interface'
 import { Filter } from '../Interface/filter.Interface'
 import { Meta } from '../Interface/meta.Interface'
 import { Message } from '../Interface/message.Interface'
 
-export class DirectoryLogHandler
+export class DirectoryLogHandler implements LogHandler
 {
     private LogfilePathOnHost: string
     private LogfilePathLocal: string
@@ -105,6 +106,12 @@ export class DirectoryLogHandler
         return this.parseMessages(logfile)
     }
 
+    /**
+     * Watch for new Messages within the current logfile
+     *
+     * @param filename
+     * @param callback
+     */
     public watchForNewMessages (filename: string, callback)
     {
         const fullFilename = this.LogfilePathLocal + filename
