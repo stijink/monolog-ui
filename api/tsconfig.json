@@ -6,9 +6,12 @@
         "removeComments": true,
         "preserveConstEnums": true,
         "sourceMap": false,
-        "types" : ["process", "node", "socket.io", "moment"],
         "typeRoots": [
             "./node_modules/@types"
+        ],
+        "lib": [
+            "dom",
+            "es7"
         ]
     },
     "include": [

@@ -21,6 +21,7 @@ export class MonologUiServer
         this.LogHandler = logHandler
     }
 
+
     public start ()
     {
         this.httpServer.listen(this.port, () => {
@@ -116,6 +117,10 @@ export class MonologUiServer
      */
     private applyFilters(messages: Message[], filter: Filter): Message[]
     {
+        if (messages == null) {
+            return
+        }
+
         // Filter for loglevel
         if (filter.levels) {
             messages = messages.filter(message => filter.levels.includes(message.level))
@@ -145,6 +150,10 @@ export class MonologUiServer
      */
     private applyLimits(messages: Message[], filter: Filter): Message[]
     {
+        if (messages == null) {
+            return
+        }
+
         return messages.slice(filter.start, (filter.start + filter.limit))
     }
 }

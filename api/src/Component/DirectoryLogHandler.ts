@@ -95,6 +95,10 @@ export class DirectoryLogHandler implements LogHandler
      */
     public getMessages (filename: string): Message[]
     {
+        if (filename.length === 0) {
+            return
+        }
+
         const fullFilename = this.logfilePathLocal + filename
         const logfile  = this.readLogfile(fullFilename)
 
@@ -126,6 +130,7 @@ export class DirectoryLogHandler implements LogHandler
      */
     private readLogfile (filename: string): string
     {
+        console.log(filename)
         return Filesystem.readFileSync(filename, 'utf8').toString().trim()
     }
 
