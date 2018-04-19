@@ -17,8 +17,7 @@
       </v-menu>
       </v-toolbar-title>
 
-      <!-- <v-text-field flat solo-inverted prepend-icon="search" label="Search in messages ..." v-model="filter_searchterm" @input="updateSearchterm()"></v-text-field> -->
-      <v-text-field flat solo-inverted prepend-icon="search" :label="percentageLoaded" v-model="filter_searchterm" @input="updateSearchterm()"></v-text-field>
+      <v-text-field flat solo-inverted prepend-icon="search" label="Search in messages ..." v-model="filter_searchterm" @input="updateSearchterm()"></v-text-field>
 
       <v-toolbar-items>
 

@@ -313,7 +313,7 @@ export const store = new Vuex.Store({
     },
 
     updatePageTitle ({getters}) {
-      document.title = 'monolog-ui [' + getters.percentageLoaded + '% - ' + getters.filter.file + ']'
+      document.title = `monolog-ui [${getters.percentageLoaded}% - ${getters.filter.file}]`
     },
 
     updateSearchterm: _debounce(function ({commit, dispatch}) {
