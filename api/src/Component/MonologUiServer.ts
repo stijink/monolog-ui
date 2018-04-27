@@ -25,7 +25,7 @@ export class MonologUiServer
     public start ()
     {
         this.httpServer.listen(this.port, () => {
-            console.log('MonologUiServer started. Listing on Port ' + this.port)
+            console.log('MonologUiServer started. Listing at Port ' + this.port)
         })
 
         this.socketIo.on('connect', (socket: any) => {
