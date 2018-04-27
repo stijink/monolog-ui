@@ -22,7 +22,7 @@
       <v-toolbar-items>
 
         <!-- Channels -->
-        <v-menu offset-y full-width :close-on-content-click="false">
+        <v-menu offset-y full-width :close-on-content-click="false" transition="scale-transition">
           <v-btn flat slot="activator">
             Channels ({{ filter_channels.length }}/{{ meta.channels.length }})
             <v-icon class="ml-1">keyboard_arrow_down</v-icon>
@@ -64,7 +64,7 @@
       </v-menu>
 
       <!-- Loglevels -->
-      <v-menu offset-y full-width :close-on-content-click="false">
+      <v-menu offset-y full-width :close-on-content-click="false" transition="scale-transition">
         <v-btn flat slot="activator">
           Log Levels ({{ filter_levels.length }}/{{ meta.levels.length }})
           <v-icon class="ml-1">keyboard_arrow_down</v-icon>
@@ -106,7 +106,7 @@
     </v-menu>
 
       <!-- Settings -->
-      <v-menu offset-y full-width :close-on-content-click="false">
+      <v-menu offset-y full-width :close-on-content-click="false" transition="scale-transition">
 
         <v-btn flat slot="activator">
           <v-icon class="ml-1">menu</v-icon>

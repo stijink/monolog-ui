@@ -10,7 +10,7 @@
       <v-toolbar-items>
 
       <!-- Settings -->
-      <v-menu offset-y full-width :close-on-content-click="false">
+      <v-menu offset-y full-width :close-on-content-click="false" transition="scale-transition">
 
         <v-btn flat slot="activator">
           <v-icon class="ml-1">menu</v-icon>
