@@ -14,6 +14,7 @@ export const store = new Vuex.Store({
     isBackendHealthy: true,
     backendErrorMessage: '',
     newMessagesPaused: false,
+    statisticsVisible: false,
 
     filter: {
       file: '',
@@ -84,6 +85,10 @@ export const store = new Vuex.Store({
       if (percentage > 100) { percentage = 100 }
 
       return percentage
+    },
+
+    statisticsVisible: state => {
+      return state.statisticsVisible
     }
   },
 
@@ -98,8 +103,13 @@ export const store = new Vuex.Store({
         state.filter.file = state.logfiles.files[0].name
       }
 
-      state.filter.channels = state.meta.channels
-      state.filter.levels = state.meta.levels
+      if (state.filter.channels.length === 0) {
+        state.filter.channels = state.meta.channels
+      }
+
+      if (state.filter.levels.length === 0) {
+        state.filter.levels = state.meta.levels
+      }
     },
 
     increaseStartOffset (state) {
@@ -193,6 +203,14 @@ export const store = new Vuex.Store({
 
     setBackendErrorMessage (state, message) {
       state.backendErrorMessage = message
+    },
+
+    showStatistics (state) {
+      state.statisticsVisible = true
+    },
+
+    hideStatistics (state) {
+      state.statisticsVisible = false
     }
   },
 
@@ -200,7 +218,6 @@ export const store = new Vuex.Store({
 
     // Successful websocket connection
     socket_connect ({dispatch}) {
-      console.log('socket_connect')
       dispatch('restoreFilter')
       dispatch('requestLogfiles')
     },
@@ -210,14 +227,12 @@ export const store = new Vuex.Store({
     },
 
     socket_error ({commit}) {
-      commit('stopLoading')
       commit('markBackendAsFaulty', 'Could not connect to the API')
       this._vm.$socket.close()
     },
 
     // Retrieve logfiles from websocket
     socket_logfiles ({commit, dispatch}, logfiles) {
-      console.log('socket_logfiles')
       commit('updateLogfiles', logfiles)
       commit('setDefaultLogfile')
       commit('markBackendAsHealthy')
@@ -226,7 +241,6 @@ export const store = new Vuex.Store({
 
     // Retrieve meta information from websocket and reset the filter
     socket_metaResetFilter ({commit, dispatch}, meta) {
-      console.log('socket_metaresetfilter')
       commit('updateMeta', meta)
       commit('ensureDefaultFilter')
       dispatch('reloadMessages')
@@ -234,15 +248,12 @@ export const store = new Vuex.Store({
 
     // Retrieve meta information from websocket and do not reset the filter
     socket_metaPreserveFilter ({commit, dispatch}, meta) {
-      console.log('socket_metapreservefilter')
       commit('updateMeta', meta)
       dispatch('reloadMessages')
     },
 
     // Retrieve reloaded messages from the websocket
     socket_reloadedMessages ({commit, dispatch}, messages) {
-      console.log('socket_reloadedmessages')
-
       // Scroll to top of the page
       document.body.scrollTop = document.documentElement.scrollTop = 0
 
@@ -253,7 +264,6 @@ export const store = new Vuex.Store({
 
     // Retrieve more messages from the websocket
     socket_requestedMessages ({commit, dispatch}, messages) {
-      console.log('socket_requestedmessages')
       commit('addMoreMessages', messages)
       dispatch('updatePageTitle')
       commit('stopLoading')
@@ -271,7 +281,6 @@ export const store = new Vuex.Store({
     },
 
     restoreFilter ({commit}) {
-      console.log('restoreFilter')
       if (localStorage.getItem('filter')) {
         let filter = JSON.parse(localStorage.getItem('filter'))
         filter.start = 0
@@ -280,33 +289,37 @@ export const store = new Vuex.Store({
       }
     },
 
+    rememberFilter ({getters}) {
+      // Only save filter settings when we already have messages loaded
+      // This prevents the saving of an empty (default) filter
+      if (getters.hasMessages) {
+        localStorage.setItem('filter', JSON.stringify(getters.filter))
+      }
+    },
+
     requestLogfiles ({commit}) {
-      console.log('requestLogfiles')
       commit('startLoading')
       this._vm.$socket.emit('request-logfiles')
     },
 
     requestMetaAndResetFilter ({commit, getters}) {
-      console.log('requestMetaAndResetFilter')
       commit('startLoading')
       this._vm.$socket.emit('request-meta-reset-filter', getters.filter)
     },
 
     requestMetaAndPreserveFilter ({commit, getters}) {
-      console.log('requestMetaAndPreserveFilter')
       commit('startLoading')
       this._vm.$socket.emit('request-meta-preserve-filter', getters.filter)
     },
 
-    reloadMessages ({getters, commit}) {
-      console.log('reloadMessages')
+    reloadMessages ({getters, commit, dispatch}) {
       commit('startLoading')
-      localStorage.setItem('filter', JSON.stringify(getters.filter))
+      dispatch('rememberFilter')
+
       this._vm.$socket.emit('reload-messages', getters.filter)
     },
 
     requestMoreMessages ({getters, commit}) {
-      console.log('requestMoreMessages')
       commit('startLoading')
       commit('increaseStartOffset')
       this._vm.$socket.emit('request-messages', getters.filter)
