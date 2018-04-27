@@ -110,6 +110,14 @@ export const store = new Vuex.Store({
       if (state.filter.levels.length === 0) {
         state.filter.levels = state.meta.levels
       }
+
+      if (state.filter.channels.length > state.meta.channels.length) {
+        state.filter.channels = state.meta.channels
+      }
+
+      if (state.filter.levels.length > state.meta.levels.length) {
+        state.filter.levels = state.meta.levels
+      }
     },
 
     increaseStartOffset (state) {
@@ -216,6 +224,7 @@ export const store = new Vuex.Store({
 
     // Successful websocket connection
     socket_connect ({dispatch}) {
+      dispatch('restoreFilter')
       dispatch('requestLogfiles')
     },
 
@@ -239,8 +248,7 @@ export const store = new Vuex.Store({
     // Retrieve meta information from websocket and reset the filter
     socket_metaResetFilter ({commit, dispatch}, meta) {
       commit('updateMeta', meta)
-      commit('ensureDefaultFilter')
-      dispatch('restoreFilter')
+      commit('resetFilter')
       dispatch('reloadMessages')
     },
 
@@ -331,6 +339,6 @@ export const store = new Vuex.Store({
       // We do have a seperate method for updating the search term
       // because we only want to allow a reload every 500 ms.
       dispatch('reloadMessages')
-    }, 500)
+    }, 400)
   }
 })
