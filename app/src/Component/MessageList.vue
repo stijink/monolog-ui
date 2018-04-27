@@ -4,7 +4,7 @@
       <v-layout row>
         <v-flex xs12>
           <table class="messages">
-            <tr v-for="(message, index) in messages" v-bind:key="index" class="pa-3" :class="messageColor(message)" :data-message-idx="index">
+            <tr v-for="(message, index) in messages" v-bind:key="index" class="pa-3 message--row" :class="messageColor(message)" :data-message-idx="index">
               <td class="pa-2 message--level">{{ message.level }}</td>
               <td class="pa-2 message--channel">{{ message.channel }}</td>
               <td class="pa-2 text-xs-center message--date">{{ message.date }}</td>
@@ -61,6 +61,10 @@ export default {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
     width: 100%;
     table-layout: fixed;
+  }
+
+  .message--row:hover {
+    filter: brightness(95%);
   }
 
   .message--level {
