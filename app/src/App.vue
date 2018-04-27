@@ -1,11 +1,11 @@
 <template>
   <v-app v-infinite-scroll="requestMoreMessages" infinite-scroll-disabled="isScrollingDisabled" infinite-scroll-distance="30" infinite-scroll-immediate-check="false">
 
-  <!-- Toolbar when no meta informations exists -->
-  <app-toolbar-loading v-if="! metaLoaded"></app-toolbar-loading>
+    <!-- Toolbar when no meta informations exists -->
+    <app-toolbar-loading v-if="! metaLoaded"></app-toolbar-loading>
 
-  <!-- Toolbar when meta informations exists -->
-  <app-toolbar v-if="metaLoaded"></app-toolbar>
+    <!-- Toolbar when meta informations exists -->
+    <app-toolbar v-if="metaLoaded"></app-toolbar>
 
     <!-- An error has happend in the backend -->
     <app-backend-error v-if="isBackendHealthy === false"></app-backend-error>
