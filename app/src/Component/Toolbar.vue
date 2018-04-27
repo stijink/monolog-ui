@@ -109,7 +109,10 @@
       <v-menu offset-y full-width :close-on-content-click="false" transition="scale-transition">
 
         <v-btn flat slot="activator">
-          <v-icon class="ml-1">menu</v-icon>
+          <v-badge overlap :color="newMessagesPaused ? 'grey' : 'green'" class="badge--sync">
+            <v-icon slot="badge" dark size=12>{{ newMessagesPaused ? 'sync_disabled' : 'sync' }}</v-icon>
+            <v-icon class="ml-1">menu</v-icon>
+          </v-badge>
         </v-btn>
 
         <v-list>
@@ -237,5 +240,13 @@ export default {
 <style scoped>
   .list__tile__action {
     min-width: 30px;
+  }
+
+  /* Finetune Badge size + positioning */
+  .badge--sync >>> span {
+    width: 20px;
+    height: 20px;
+    top: -8px;
+    right: -10px;
   }
 </style>
