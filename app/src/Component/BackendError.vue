@@ -1,7 +1,12 @@
 <template>
 
-    <v-container fluid fill-height>
-      <v-layout flex align-center justify-center>
+    <v-container fluid fill-height class="backend-error">
+      <v-layout align-center justify-center>
+
+        <v-flex xs3 class="text-xs-left">
+          <img src="/static/img/sadbot-250.png" />
+        </v-flex>
+
         <v-flex xs4 class="text-xs-center">
 
           <p class="headline mb-2">Uuups. Sadly an error occurred.</p>
@@ -30,4 +35,5 @@ export default {
   }
 }
 </script>
+
 
