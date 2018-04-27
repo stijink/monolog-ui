@@ -137,7 +137,9 @@ export const store = new Vuex.Store({
     },
 
     setDefaultLogfile (state) {
-      state.filter.file = state.logfiles.files[0].name
+      if (state.filter.file.length === 0) {
+        state.filter.file = state.logfiles.files[0].name
+      }
     },
 
     startLoading (state) {
@@ -201,10 +203,6 @@ export const store = new Vuex.Store({
       state.filter.levels = state.meta.levels
     },
 
-    setBackendErrorMessage (state, message) {
-      state.backendErrorMessage = message
-    },
-
     showStatistics (state) {
       state.statisticsVisible = true
     },
@@ -218,7 +216,6 @@ export const store = new Vuex.Store({
 
     // Successful websocket connection
     socket_connect ({dispatch}) {
-      dispatch('restoreFilter')
       dispatch('requestLogfiles')
     },
 
@@ -243,6 +240,7 @@ export const store = new Vuex.Store({
     socket_metaResetFilter ({commit, dispatch}, meta) {
       commit('updateMeta', meta)
       commit('ensureDefaultFilter')
+      dispatch('restoreFilter')
       dispatch('reloadMessages')
     },
 
