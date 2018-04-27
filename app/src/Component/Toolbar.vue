@@ -10,7 +10,7 @@
           <v-list>
 
           <v-list-tile v-for="file in logfiles.files" :key="file.name" @click="changeLogfile(file.name); requestMetaAndResetFilter()">
-            <v-list-tile-title>{{ logfiles.path }}/{{ file.name }} ({{ formatFilesize(file.size) }})</v-list-tile-title>
+            <v-list-tile-title>{{ logfiles.path }}{{ file.name }} ({{ formatFilesize(file.size) }})</v-list-tile-title>
           </v-list-tile>
 
         </v-list>
