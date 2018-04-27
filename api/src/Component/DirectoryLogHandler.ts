@@ -13,7 +13,11 @@ export class DirectoryLogHandler implements LogHandler
 {
     private watcher = null
 
-    constructor(private logfilePathLocal: string, private logfilePathOnHost: string) {}
+    constructor(private logfilePath: string, private exposedLogfilePath: string)
+    {
+        this.logfilePath = this.ensureTrailingSlash(this.logfilePath)
+        this.exposedLogfilePath = this.ensureTrailingSlash(this.exposedLogfilePath)
+    }
 
     /**
      * Get a list of logfiles within a configured path
@@ -23,18 +27,18 @@ export class DirectoryLogHandler implements LogHandler
     public getLogfiles (): Files
     {
         const logfiles = {
-            path: this.logfilePathOnHost,
+            path: this.exposedLogfilePath,
             files: []
         }
 
-        const files = Filesystem.readdirSync(this.logfilePathLocal);
+        const files = Filesystem.readdirSync(this.logfilePath);
 
         files.forEach(filename => {
             if (! filename.includes('.log')) {
                 return
             }
 
-            const fileStats = Filesystem.statSync(this.logfilePathLocal + filename);
+            const fileStats = Filesystem.statSync(this.logfilePath + filename);
 
             logfiles.files.push({
                 name: filename,
@@ -72,7 +76,7 @@ export class DirectoryLogHandler implements LogHandler
         channels = Array.from(new Set(channels));
 
         // Determine the size of the log file
-        const fileStats = Filesystem.statSync(this.logfilePathLocal + filter.file);
+        const fileStats = Filesystem.statSync(this.logfilePath + filter.file);
         const filesize_in_mb = fileStats.size;
 
         return {
@@ -99,7 +103,7 @@ export class DirectoryLogHandler implements LogHandler
             return
         }
 
-        const fullFilename = this.logfilePathLocal + filename
+        const fullFilename = this.logfilePath + filename
         const logfile  = this.readLogfile(fullFilename)
 
         return this.parseMessages(logfile)
@@ -113,7 +117,7 @@ export class DirectoryLogHandler implements LogHandler
      */
     public watchForNewMessages (filename: string, callback)
     {
-        const fullFilename = this.logfilePathLocal + filename
+        const fullFilename = this.logfilePath + filename
 
         if (this.watcher !== null) {
             this.watcher.close()
@@ -130,7 +134,6 @@ export class DirectoryLogHandler implements LogHandler
      */
     private readLogfile (filename: string): string
     {
-        console.log(filename)
         return Filesystem.readFileSync(filename, 'utf8').toString().trim()
     }
 
@@ -181,5 +184,20 @@ export class DirectoryLogHandler implements LogHandler
             level: level,
             text: text
         }
+    }
+
+    /**
+     * Make sure the path has a trailing slash
+     *
+     * @param   path
+     * @returns path
+     */
+    private ensureTrailingSlash (path: string): string
+    {
+        if (path.substring(path.length - 1) !== '/') {
+            path += '/'
+        }
+
+        return path
     }
 }
